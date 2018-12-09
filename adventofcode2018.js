@@ -310,7 +310,7 @@ const removeOpp = input => {
 // Day 5 - Puzzle 2
 // Removes all instances of char, case insensitive, in @input and returns remaining string
 const removeUnit = (input, char) => {
-	return input.split('').filter(letter => letter.toUpperCase() !== char.toUpperCase()).join('');
+	return input.replace(new RegExp(char, 'gi'), '');
 }
 
 // Cycles through each letter of the alphabet, removing that letter from input
@@ -321,3 +321,227 @@ const worstLetter = input => {
 	return Math.min(...lengths);
 }
 
+// Day 6 - Puzzle 1
+// @input 2D array of coordinate pairs: [[x1,y1], [x2,y2]...]
+const largestFiniteArea = input => {
+	const allX = input.map(pair => pair[0]);
+	const allY = input.map(pair => pair[1]);
+	const minX = Math.min(...allX);
+	const maxX = Math.max(...allX);
+	const minY = Math.min(...allY);
+	const maxY = Math.max(...allY);
+	
+	const grid = Array(maxY - minY + 2).fill(null).map(row => Array(maxX - minX + 2).fill(null));
+	for (let c = 0; c < grid[0].length; c++) {
+		for (let r = 0; r < grid.length; r++) {
+			const row = r + minY - 1;
+			const col = c + minX - 1;
+			grid[c][r] = closestSpot(row, col, input);
+		}
+	}
+	const areas = Array(input.length).fill(0);
+	grid.forEach(row => {
+		row.forEach(elem => {
+			areas[elem]++;
+		});
+	});
+	grid.forEach(row => {
+		areas[row[0]] = 0;
+		areas[row[row.length - 1]] = 0;
+	});
+	grid[0].forEach(elem => {
+		areas[elem] = 0;
+	});
+	grid[grid.length-1].forEach(elem => {
+		areas[elem] = 0;
+	});
+	return Math.max(...areas);
+}
+
+const manhattanDistance = ([x1, y1], [x2, y2]) => {
+	return Math.abs(x2-x1) + Math.abs(y2-y1);
+}
+
+const closestSpot = (row, col, allCoords) => {
+	const dist = allCoords.map(coord => manhattanDistance(coord, [row, col]));
+	const min = Math.min(...dist);
+	if (dist.indexOf(min) !== dist.lastIndexOf(min)) {
+		return 'X';
+	}
+	return dist.indexOf(min);
+}
+
+const sumDistances = (row, col, allCoords) => {
+	let dist = 0;
+	allCoords.forEach(coord => {
+		dist += manhattanDistance(coord, [row, col]);
+	});
+	return dist;
+}
+
+// Day 6 - Puzzle 2
+const centralRegion = input => {
+	const allX = input.map(pair => pair[0]);
+	const allY = input.map(pair => pair[1]);
+	const minX = Math.min(...allX);
+	const maxX = Math.max(...allX);
+	const minY = Math.min(...allY);
+	const maxY = Math.max(...allY);
+	
+	const grid = Array(maxY - minY + 2).fill(null).map(row => Array(maxX - minX + 2).fill(null));
+	let region = 0;
+	for (let c = 0; c < grid[0].length; c++) {
+		for (let r = 0; r < grid.length; r++) {
+			const row = r + minY - 1;
+			const col = c + minX - 1;
+			if (sumDistances(row, col, input) < 10000) {
+				region++;
+				grid[c][r] = 1;
+			} else {
+				grid[c][r] = 0;
+			}
+		}
+	}
+	console.log(region); // This is the answer
+	return grid;
+	
+}
+
+// Day 7 - Puzzle 1
+const stepOrder = input => {
+	let steps = {};
+	let order = '';
+	// Populates steps as { letter: { before: [stepNames], after: [stepNames] } }
+	input.forEach(step => {
+		const [ str, first, second ] = step.match(/Step (.) must be finished before step (.) can begin./);
+		if (!steps.hasOwnProperty(first)) {
+			steps[first] = { before: [], after: [] };
+		}
+		if (!steps.hasOwnProperty(second)) {
+			steps[second] = { before: [], after: [] };
+		}
+		steps[first].before.push(second);
+		steps[second].after.push(first);
+	});
+
+	let stepNames = Object.keys(steps).sort();
+	let count = stepNames.length;
+
+	/* Finds `next`: the first step (alphabetically) with an empty `after` array 
+	*  Adds `next` to the end of `order` string
+	*  Removes `next` from all `after` arrays (by iterating through `next.before`)
+	*  Removes `next` from `steps` and `stepNames` 
+	*/
+	while (count > 0) {
+		const next = stepNames.find(letter => steps[letter].after.length === 0);
+		order += next;
+		steps[next].before.forEach(nextStep => {
+			steps[nextStep].after = removeVal(steps[nextStep].after, next);
+		});
+		delete steps[next];
+		stepNames = removeVal(stepNames, next);
+		count--;
+	}
+	return order;
+}
+
+// Returns @array without first instance of @val
+const removeVal = (array, val) => {
+	const index = array.indexOf(val);
+	if (index >= 0) {
+		return array.slice(0, index).concat(array.slice(index + 1));
+	} 
+	return array;
+}
+
+// Day 7 - Puzzle 2
+const stepTime = input => {
+	let steps = {};
+
+	// Populates steps as { letter: { before: [stepNames], after: [stepNames], timeLeft: seconds } }
+	input.forEach(step => {
+		const [ str, first, second ] = step.match(/Step (.) must be finished before step (.) can begin./);
+		if (!steps.hasOwnProperty(first)) {
+			steps[first] = { before: [], after: [], timeLeft: first.charCodeAt(0) - 4 };
+		}
+		if (!steps.hasOwnProperty(second)) {
+			steps[second] = { before: [], after: [], timeLeft: second.charCodeAt(0) - 4 };
+		}
+		steps[first].before.push(second);
+		steps[second].after.push(first);
+	});
+
+	let stepNames = Object.keys(steps).sort();
+	let count = stepNames.length;
+
+	// Initialize workers
+	let seconds = 0;
+	let workers = Array(5).fill(null).map(el => { return { name: 'fillMe', timeLeft: -1}; });
+	const first = stepNames.filter(letter => steps[letter].after.length === 0);
+	const starters = stepNames.filter(letter => steps[letter].after.length === 0);
+	for (let i = 0; i < starters.length && i < 5; i++) {
+		workers[i] = { name: starters[i], ...steps[starters[i]] }; 
+	}
+
+	
+	while (count > 0) {
+		// Move x seconds in time, where x is the minumum time left of the steps being worked on
+		const timeJump = minTimeRemaining(workers);
+		seconds += timeJump;
+		workers = decWorkers(workers, timeJump);
+
+		// justEnded = letters of step(s) that finished after x seconds
+		const justEnded = justFinished(workers);
+		if (justEnded.length) {
+			// Remove done from all after arrays, then remove done from steps and increment count
+			justEnded.forEach(done => {		
+				steps[done].before.forEach(nextStep => {
+					steps[nextStep].after = removeVal(steps[nextStep].after, done);
+				});
+				delete steps[done];
+				stepNames = removeVal(stepNames, done);
+				count--;
+			});
+
+			// Fill any open workers with any steps that are ready to start
+			const readySteps = stepNames.filter(ready => steps[ready].after.length === 0 && !workers.find(w => w.name === ready));
+			const available = openWorkers(workers);
+			available.forEach(open => {
+				const nextUp = readySteps.shift();
+				workers[open] = nextUp ? { name: nextUp, ...steps[nextUp] } : { name: 'fillMe', timeLeft: -1 };
+			});
+		}
+	}
+	return seconds;
+}
+
+// Decrements all workers by amt seconds
+const decWorkers = (workers, amt = 1) => {
+	return workers.map(w => w.timeLeft > 0 ? { ...w, timeLeft: w.timeLeft - amt } : w );
+}
+
+// Returns an array of letters that finished in this second
+const justFinished = workers => {
+	return workers
+		.filter(w => w.timeLeft === 0)
+		.map(w => w.name);
+}
+
+// Returns an array of numbers representing worker indices that aren't currently working
+const openWorkers = workers => {
+	return workers
+		.map((w,i) => {
+			return {
+				name: w.name,
+				timeLeft: w.timeLeft,
+				index: i,
+			};
+		}).filter(w => w.timeLeft <= 0)
+		.map(w => w.index);
+}
+
+// Returns the lowest number of seconds left for all steps in workers
+const minTimeRemaining = workers => {
+	const positiveTimes = workers.map(w => w.timeLeft).filter(time => time > 0);
+	return Math.min(...positiveTimes)
+}
