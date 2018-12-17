@@ -1,3 +1,309 @@
+// --- Standard LinkedList ----------
+
+class LinkedListNode {
+	constructor(el) {
+		this.element = el;
+		this.next = null;
+	}
+}
+
+class LinkedList {
+	constructor() {
+		this.head = null;
+		this.size = 0;
+	}
+
+	// Adds an element at the end of the list
+	add(el) {
+		const node = new LinkedListNode(el);
+		let current;
+		// If the list is empty
+		if (this.head == null) {
+			this.head = node;
+		} 
+		else {
+			current = this.head;
+			// Iterate to the end of the list
+			while (current.next) {
+				current = current.next;
+			}
+			// Add the node at the end of the list
+			current.next = node;
+		}
+		this.size++;
+	}
+
+	// Inserts an element at the given index
+	insert(el, index) {
+		if (index > 0 && index > this.size) {
+			return false;
+		}
+		const node = new Node(el);
+		let cur, prev;
+		cur = this.head;
+		if (index === 0) {
+			node.next = head;
+			this.head = node;
+		}
+		else {
+			cur = this.head;
+			for (let i = 1; i < index; i++) {
+				prev = cur;
+				cur = cur.next;
+			}
+			node.next = cur;
+			prev.next = node;
+		}
+		this.size++;
+	}
+
+	// Removes an element from the specified location
+	removeFrom(index) {
+		if (index > 0 && index > this.size) {
+			return -1;
+		}
+		let cur, prev;
+		cur = this.head;
+		prev = cur;
+		if (index === 0) {
+			this.head = cur.next;
+		} else {
+			for (let i = 1; i < index; i++) {
+				prev = cur;
+				cur = cur.next;
+			}
+			// Remove the element
+			prev.next = cur.next;
+		}
+		this.size--;
+		return curr.el;
+	}
+
+	removeElement(el) {
+		let cur = this.head;
+		let prev = null;
+		while (cur != null) {
+			if (current.element === el) {
+				if (prev == null) {
+					this.head = cur.next;
+				}
+				else {
+					prev.next = cur.next;
+				}
+				this.size--;
+				return cur.element;
+			}
+			prev = cur;
+			cur = cur.next;
+		}
+		return -1;
+	}
+
+	indexOf(el) {
+        let count = 0;
+        let cur = this.head;
+        while (cur != null) {
+            if (cur.element === el) {
+                return count;
+            }
+            count++;
+            cur = cur.next;
+        }
+        return -1;
+    }
+    
+    isEmpty() {
+        return this.size === 0;
+    }
+
+    sizeOfList() {
+        return this.size;
+    }
+
+    printList() {
+        let cur = this.head;
+        let str = '';
+        while (cur) {
+            str += cur.element + ' ';
+            cur = cur.next;
+        }
+        return str;
+    }
+}
+
+// --- Circular LinkedList ----------
+
+// For Day 9 - Marble Game
+class CircularListNode {
+    constructor(el) {
+        this.element = el;
+        this.prev = null;
+		this.next = null;
+	}
+}
+
+class CircularLinkedList {
+	constructor() {
+		this.current = null;
+		this.size = 0;
+	}
+
+    // Adds an element @loc nodes away from current
+    // @el becomes the new this.current
+	add(el, loc) {
+		const node = new CircularListNode(el);
+		// If the list is empty
+		if (this.size === 0) {
+            this.current = node;
+            node.prev = node;
+            node.next = node;
+		} 
+		else {
+            if (loc < 0) {
+                for (let up = 0; up > loc; up--) {
+                    this.current = this.current.prev;
+                }
+            }
+            if (loc > 0) {
+                for (let down = 0; down < loc; down++) {
+                    this.current = this.current.next;
+                }
+            }
+            node.prev = this.current.prev;
+			node.next = this.current;
+			this.current.prev.next = node;
+			this.current.prev = node;
+            this.current = node;
+		}
+		this.size++;
+	}
+
+	// Removes an element from the specified location
+	removeFromLoc(loc) {
+		if (this.size === 0) {
+			return -1;
+        }
+        if (loc < 0) {
+            for (let up = 0; up > loc; up--) {
+                this.current = this.current.prev;
+            }
+        }
+        if (loc > 0) {
+            for (let down = 0; down < loc; down++) {
+                this.current = this.current.next;
+            }
+        }
+        const removed = this.current.element;
+        this.current.prev.next = this.current.next;
+        this.current.next.prev = this.current.prev;
+        this.current = this.current.next;
+        return removed;
+	}
+	
+	getCurrentEl() {
+		return this.current.element;
+	}
+	
+    isEmpty() {
+        return this.size === 0;
+    }
+
+    sizeOfList() {
+        return this.size;
+    }
+
+    printList() {
+        let cur = this.current;
+        let str = '';
+        for (let i = 0; i < this.size; i++) {
+            str += cur.element + ' ';
+            cur = cur.next;
+        }
+        return str;
+    }
+}
+
+// ---- Tree -----------
+
+// For Day 8
+class TreeNode {
+	constructor(numChildren, numMetadata, parent) {
+		this.parent = parent;
+		this.numChildren = numChildren;
+		this.numMetadata = numMetadata;
+		this.children = [];
+		this.metadata = [];
+	}
+	hasAllChildren() {
+		return this.children.length === this.numChildren;
+	}
+	isComplete() {
+		return this.hasAllChildren() && 
+			this.metadata.length === this.numMetadata;
+	}
+	getParent() {
+		return this.parent;
+	}
+	getValue() {
+		if (this.numChildren === 0) {
+			return this.metadata.reduce((prev, cur) => prev + cur, 0);
+		}
+		return this.metadata.map(index => {
+			if (index > 0 && index <= this.children.length) {
+				return this.children[index - 1].getValue();
+			}
+			return 0;
+		}).reduce((prev, cur) => prev + cur, 0);
+	}
+}
+
+class Tree {
+	// Creates a tree and its root node
+	constructor() {
+		this.root = null;
+		this.current = null;
+		this.sumMetadata = 0;
+	}
+
+	addChildNode(numChildren, numMetadata) {
+		const child = new TreeNode(numChildren, numMetadata, this.current);
+		if (!this.root) {
+			this.root = child;
+		}
+		else {
+			this.current.children.push(child);
+		}
+		this.current = child;
+	}
+
+	addMetadata(metadata) {
+		this.current.metadata.push(metadata);
+		this.sumMetadata += metadata;
+	}
+
+	getTotalMetadata() {
+		return this.sumMetadata;
+	}
+
+	getCurrent() {
+		return this.current;
+	}
+
+	setCurrent(node) {
+		this.current = node;
+	}
+
+	getValue() {
+		return this.root.getValue();
+	}
+}
+
+
+
+
+
+
+
 // Day 1 - Puzzle 1
 // @input = array of strings of form "+19" or "-10"
 // Returns total after adding or subtracting all entries
@@ -544,4 +850,269 @@ const openWorkers = workers => {
 const minTimeRemaining = workers => {
 	const positiveTimes = workers.map(w => w.timeLeft).filter(time => time > 0);
 	return Math.min(...positiveTimes)
+}
+
+// Day 8 - Puzzle 1
+const buildTree = input => {
+	const data = input.split(' ').map(el => +el);
+	const tree = new Tree();
+	let d = 0;
+	while (d < data.length) {
+		const numChildren = data[d];
+		const numMetadata = data[d+1];
+		d += 2;
+		tree.addChildNode(numChildren, numMetadata);
+		while (tree.getCurrent() && tree.getCurrent().hasAllChildren() && d < data.length) {
+			// Fill in metadata
+			while (!tree.getCurrent().isComplete()) {
+				tree.addMetadata(data[d]);
+				d++;
+			}
+			// Navigate to next incomplete node
+			while (tree.getCurrent() && tree.getCurrent().isComplete()) {
+				tree.setCurrent(tree.getCurrent().getParent());
+			}
+		}
+		
+	}
+	return tree.getTotalMetadata();
+}
+
+// Day 8 - Puzzle 2
+const getTreeValue = input => {
+	const data = input.split(' ').map(el => +el);
+	const tree = new Tree();
+	let d = 0;
+	while (d < data.length) {
+		const numChildren = data[d];
+		const numMetadata = data[d+1];
+		d += 2;
+		tree.addChildNode(numChildren, numMetadata);
+		while (tree.getCurrent() && tree.getCurrent().hasAllChildren() && d < data.length) {
+			// Fill in metadata
+			while (!tree.getCurrent().isComplete()) {
+				tree.addMetadata(data[d]);
+				d++;
+			}
+			// Navigate to next incomplete node
+			while (tree.getCurrent() && tree.getCurrent().isComplete()) {
+				tree.setCurrent(tree.getCurrent().getParent());
+			}
+		}
+		
+	}
+	return tree.getValue();
+}
+
+// Day 9 - Puzzles 1 & 2
+const marbleGame = (numPlayers, marbles) => {
+	let circle = [0, 4, 2, 1, 3];
+	let currentIndex = 1;
+	let nextMarble = 5;
+	let totalMarbles = 5;
+	let scores = Array(numPlayers).fill(0);
+	for (nextMarble; nextMarble <= marbles; nextMarble++) {
+		if (nextMarble % 23 !== 0) {
+			currentIndex += 2;
+			if (currentIndex > totalMarbles) {
+				currentIndex -= totalMarbles;
+			} 
+			circle.splice(currentIndex, 0, nextMarble);
+			totalMarbles++;
+		} else {
+			const turn = nextMarble % numPlayers;
+			scores[turn] += nextMarble;
+			const alsoRemoveIndex = currentIndex - 7 >= 0 ? currentIndex - 7 : currentIndex - 7 + totalMarbles;
+			scores[turn] += circle[alsoRemoveIndex];
+			circle.splice(alsoRemoveIndex,1);
+			currentIndex = alsoRemoveIndex;
+			totalMarbles--;
+		}
+		if (nextMarble % 100000 === 0) {
+			console.log(nextMarble);
+		}
+	}
+	return Math.max(...scores);
+}
+
+// Reimplement with CircularLinkedList - SO MUCH FASTER!!
+const marbleGame2 = (numPlayers, marbles) => {
+	let circle = new CircularLinkedList();
+	let scores = Array(numPlayers).fill(0);
+	circle.add(0,2);
+	for (let i = 1; i <= marbles; i++) {
+		if (i % 23 !== 0) {
+			circle.add(i,2);
+		}
+		else {
+			const turn = i % numPlayers;
+			const removed = circle.removeFromLoc(-7);
+			scores[turn] += i;
+			scores[turn] += removed;
+		}
+	}
+	return Math.max(...scores);
+}
+
+// Day 10 - Puzzle 1 & 2
+
+// Takes an array of position/velocity strings from the puzzle input
+// Returns an array of points of the form [{..}, { xpos, ypos, xvel, yvel }, {..}]
+const setupPoints = (input) => {
+	let points = [];
+	input.forEach(point => {
+		const [ str, xpos, ypos, xvel, yvel ] = point.match(/position=<\s*(-?\d+),\s+(-?\d+)>\s+velocity=<\s*(-?\d+),\s+(-?\d+)>/);
+		points.push({
+			xpos: +xpos,
+			ypos: +ypos,
+			xvel: +xvel,
+			yvel: +yvel,
+		});
+	});
+	return points;
+}
+
+// Takes an array of points, increments one velocity step and returns the points array 
+const incrementPoints = points => {
+	const minx = Math.min(...points.map(pt => pt.xpos));
+	const maxx = Math.max(...points.map(pt => pt.xpos));
+	const miny = Math.min(...points.map(pt => pt.ypos));
+	const maxy = Math.max(...points.map(pt => pt.ypos));
+
+	const width = maxx - minx + 1;
+	const height = maxy - miny + 1;
+
+	// This is how we find a small enough grid that the page won't crash
+	if (width * height < 10000) {
+		console.log('hooray!!!!', width*height);
+	}
+	return points.map(({xpos, ypos, xvel, yvel}) => {
+		return {
+			xpos: xpos + xvel,
+			ypos: ypos + yvel,
+			xvel,
+			yvel,
+		};
+	});
+}
+
+// Takes an array of points and a 2D array of 0s and 1s where 1s are the points 
+const mapPointsToGrid = points => {
+	const minx = Math.min(...points.map(pt => pt.xpos));
+	const maxx = Math.max(...points.map(pt => pt.xpos));
+	const miny = Math.min(...points.map(pt => pt.ypos));
+	const maxy = Math.max(...points.map(pt => pt.ypos));
+
+	const width = maxx - minx + 1;
+	const height = maxy - miny + 1;
+
+	let grid = Array(height).fill(null).map(el => Array(width).fill(0));
+	points.forEach(({ xpos, ypos }) => {
+		grid[ypos - miny][xpos - minx] = 1;
+	});
+
+	return grid;
+}
+
+const visualizeGrid = grid => {
+	let HTML = "";
+	grid.forEach(row => {
+		let rowHTML = '<div class="row">';
+			row.forEach(elem => {
+				const color = elem ? '#000000' : '#FFFFFF';
+				rowHTML += `<div class="box" style="background-color: ${color};"></div>`;
+			});
+		rowHTML += '</div>';
+		HTML += rowHTML;
+	})
+	return HTML;
+}
+
+
+// Day 11 - Puzzle 1
+const maxFuelSection = serial => {
+	let grid = Array(300).fill(null).map(el => Array(300).fill(null));
+	grid = grid.map((row, i) => {
+		return row.map((col, index) => {
+			return [index + 1, i + 1];
+		});
+	});
+
+	grid = grid.map(row => {
+		return row.map(coords => {
+			return findPowerLevel(coords[0], coords[1], serial);
+		});
+	});
+	let maxFuel = sum3x3(grid, 1, 1);
+	let maxTopLeft = [1,1];
+	for (let x = 1; x <= 298; x++) {
+		for (let y = 1; y <= 298; y++) {
+			const sumRegion = sum3x3(grid, x, y);
+			if (sumRegion > maxFuel) {
+				maxFuel = sumRegion;
+				maxTopLeft = [x, y];
+			}
+		}
+	}
+	console.log(maxFuel);
+	return maxTopLeft;
+}
+
+const findPowerLevel = (x, y, serial) => {
+	const rackID = x + 10;
+	let power = rackID * y;
+	power += serial;
+	power *= rackID;
+	power = +power.toString().slice(-3,-2);
+	power -= 5;
+	return power;
+}
+
+// Returns the sum of a 3x3 square with top left corner x,y in grid
+// Note: x,y based on Puzzle 11 specs -> 1-indexed, x goes across
+const sum3x3 = (grid, x, y) => {
+	return grid[y-1][x-1] + grid[y][x-1] + grid[y+1][x-1] +
+		grid[y-1][x] + grid[y][x] + grid[y+1][x] +
+		grid[y-1][x+1] + grid[y][x+1] + grid[y+1][x+1];
+}
+
+// Day 11 - Puzzle 2
+const maxFuelSection2 = serial => {
+	let grid = Array(300).fill(null).map(el => Array(300).fill(null));
+	grid = grid.map((row, i) => {
+		return row.map((col, index) => {
+			return [index + 1, i + 1];
+		});
+	});
+
+	grid = grid.map(row => {
+		return row.map(coords => {
+			return findPowerLevel(coords[0], coords[1], serial);
+		});
+	});
+	let maxFuel = sumSection(grid, 1, 1, 1);
+	let maxTopLeft = [1,1,1];
+	for (let x = 1; x <= 300; x++) {
+		for (let y = 1; y <= 300; y++) {
+			for (let size = 1; size <= 301 - y && size <= 301 - x; size++) {
+				const sumRegion = sumSection(grid, x, y, size);
+				if (sumRegion > maxFuel) {
+					maxFuel = sumRegion;
+					maxTopLeft = [x, y, size];
+				}
+			}
+		}
+	}
+	console.log(maxFuel);
+	return maxTopLeft;
+}
+
+const sumSection = (grid, x, y, size) => {
+	let sum = 0;
+	for (var i = y-1; i < size + y - 1; i++) {
+		for (var j = x-1; j < size + x - 1; j++) {
+			sum += grid[i][j];
+		}
+	}
+	return sum;
 }
