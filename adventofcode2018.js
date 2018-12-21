@@ -810,3 +810,304 @@ const sumSection = (grid, x, y, size) => {
 	}
 	return sum;
 }
+
+// Day 12 - Puzzle 1
+const flowerPots = (pots, rules, generations) => {
+	let ruleMap = {};
+	rules.forEach(rule => {
+		const map = rule.split(' => ');
+		ruleMap[map[0]] = map[1];
+	});
+	for (let g = 1; g <= generations; g++) {
+		pots = '....' + pots + '....';
+		let nextGen = '';
+		for (let i = 0; i < pots.length - 4; i++) {
+			const rule = pots.slice(i, i+5);
+			nextGen += ruleMap[rule];
+		}
+		pots = nextGen;
+		if (g % 1000 === 0) {
+			console.log(g);
+		}
+	}
+	let flowers = 0;
+	pots.split('').forEach((pot, index) => {
+		if (pot === '#') {
+			flowers += index - (2*generations);
+		}
+	});
+	return flowers;
+}
+
+// Day 12 - Puzzle 2
+const flowerPots2 = (pots, rules, generations) => {
+	let ruleMap = {};
+	rules.forEach(rule => {
+		const map = rule.split(' => ');
+		ruleMap[map[0]] = map[1];
+	});
+	// We hit a cycle here or well before
+	for (let g = 1; g <= 5000; g++) {
+		if (g % 100000 === 0) {
+			console.log(g);
+		}
+		const first = pots.indexOf('#');
+		const last = pots.lastIndexOf('#');
+		pots = '...' + pots.slice(first, last + 1) + '...';
+		let nextGen = '';
+		for (let i = 0; i < pots.length - 4; i++) {
+			const rule = pots.slice(i, i+5);
+			nextGen += ruleMap[rule];
+		}
+		pots = nextGen;
+	}
+	const first = pots.indexOf('#');
+	const last = pots.lastIndexOf('#');
+	pots = pots.slice(first, last + 1);
+	let flowers = 0;
+	pots.split('').forEach((pot, index) => {
+		if (pot === '#') {
+			// This came from analyzing the pattern of first # within the cycle
+			flowers += index + generations - 95;
+		}
+	});
+	return flowers;
+}
+
+// Day 13 - Puzzle 1
+// Returns the location "x,y" of the first collsion between carts on the given input track
+const firstCollision = input => {
+	const tracks = input.split(/\n/).map(line => line.replace(/\s/g, 0));
+	let carts = initializeCarts(tracks);
+	let ticks = 0;
+	// To guard against infinite loop on error
+	while (ticks < 500) {
+		carts.sort(sortCarts);
+		let positions = carts.map(cart => cart.position.join(','));
+		for (let i = 0; i < carts.length; i++) {
+			carts = move(carts, i, tracks);
+			const otherPositions = positions.slice(0,i).concat(positions.slice(i+1));
+			if (otherPositions.includes(carts[i].position.join(','))) {
+				return carts[i].position.reverse().join(',');
+			} else {
+				positions[i] = carts[i].position.join(',');
+			}
+		}
+		ticks++;
+		if (ticks % 50 === 0) {
+			console.log(ticks);
+		}
+	}
+	return 'not yet';
+}
+
+// Day 13 - Puzzle 2
+// Returns the location "x,y" of the final remaining cart after all others have crashed
+// The location is at the end of the tick in which the last crash occurs
+const lastCart = input => {
+	const tracks = input.split(/\n/).map(line => line.replace(/\s/g, 0));
+	let carts = initializeCarts(tracks);
+	console.log(carts);
+	let ticks = 0;
+	while (carts.length > 1 && ticks < 100000) {
+		carts.sort(sortCarts);
+		let positions = carts.map(cart => cart.position.join(','));
+		let crashes = [];
+		for (let i = 0; i < carts.length; i++) {
+			carts = move(carts, i, tracks);
+			const otherPositions = positions.slice(0,i).concat(positions.slice(i+1));
+			if (otherPositions.includes(carts[i].position.join(','))) {
+				otherIndex = otherPositions.indexOf(carts[i].position.join(','));
+				otherIndex < i ? crashes.push(otherIndex, i) : crashes.push(i, otherIndex + 1);
+			}
+			positions[i] = carts[i].position.join(',');
+		}
+		if (crashes.length) {
+			console.log('crashes', crashes);
+			carts = removeIndex(carts, crashes);
+		}
+		ticks++;
+		if (ticks % 500 === 0) {
+			console.log(ticks);
+		}
+	}
+	console.log(ticks);
+	console.log(carts);
+	return carts[0].position.reverse().join(',');
+}
+
+const initializeCarts = tracks => {
+	let carts = [];
+	tracks.forEach((row,i) => {
+		row.split('').forEach((el, col) => {
+			if ('v^<>'.includes(el)) {
+				let c = {
+					position: [i, col],
+					nextTurn: 'left',
+				};
+				switch(row[col]) {
+					case 'v':
+					c.direction = 'down';
+					row[col] = '|';
+					break;
+					case '^':
+					c.direction = 'up';
+					row[col] = '|';
+					break;
+					case '<':
+					c.direction = 'left';
+					row[col] = '-';
+					break;
+					case '>':
+					c.direction = 'right';
+					row[col] = '-';
+					break;
+				}
+				carts.push(c);
+			}
+		});
+	});
+	return carts;
+}
+// Take an array of objects with a key of position, an array of length 2
+// Sorts by position[0] then position[1]
+const sortCarts = (a,b) => {
+	if (a.position[0] < b.position[0]) {
+		return -1;
+	}
+	if (a.position[0] > b.position[0]) {
+		return 1;
+	}
+	if (a.position[1] < b.position[1]) {
+		return -1;
+	}
+	if (a.position[1] > b.position[1]) {
+		return 1;
+	}
+	return 0;
+}
+
+// Executes one move of cart[i], given the map tracks
+const move = (carts, i, tracks) => {
+	switch(carts[i].direction) {
+		case 'up':
+			carts[i].position[0]--;
+			switch(tracks[carts[i].position[0]][carts[i].position[1]]) {
+				case 'b':
+					carts[i].direction = 'left';
+					break;
+				case '/':
+					carts[i].direction = 'right';
+					break;
+				case '+':
+					switch(carts[i].nextTurn) {
+						case 'left':
+							carts[i].direction = 'left';
+							carts[i].nextTurn = 'straight';
+							break;
+						case 'straight':
+							carts[i].nextTurn = 'right';
+							break;
+						case 'right':
+							carts[i].direction = 'right';
+							carts[i].nextTurn = 'left';
+							break;
+					}
+					break;
+			}
+			break;
+		case 'down':
+			carts[i].position[0]++;
+			switch(tracks[carts[i].position[0]][carts[i].position[1]]) {
+				case 'b':
+					carts[i].direction = 'right';
+					break;
+				case '/':
+					carts[i].direction = 'left';
+					break;
+				case '+':
+					switch(carts[i].nextTurn) {
+						case 'left':
+							carts[i].direction = 'right';
+							carts[i].nextTurn = 'straight';
+							break;
+						case 'straight':
+							carts[i].nextTurn = 'right';
+							break;
+						case 'right':
+							carts[i].direction = 'left';
+							carts[i].nextTurn = 'left';
+							break;
+					}
+					break;
+			}
+			break;
+		case 'left':
+			carts[i].position[1]--;
+			switch(tracks[carts[i].position[0]][carts[i].position[1]]) {
+				case 'b':
+					carts[i].direction = 'up';
+					break;
+				case '/':
+					carts[i].direction = 'down';
+					break;
+				case '+':
+					switch(carts[i].nextTurn) {
+						case 'left':
+							carts[i].direction = 'down';
+							carts[i].nextTurn = 'straight';
+							break;
+						case 'straight':
+							carts[i].nextTurn = 'right';
+							break;
+						case 'right':
+							carts[i].direction = 'up';
+							carts[i].nextTurn = 'left';
+							break;
+					}
+					break;
+			}
+			break;
+		case 'right':
+			carts[i].position[1]++;
+			switch(tracks[carts[i].position[0]][carts[i].position[1]]) {
+				case 'b':
+					carts[i].direction = 'down';
+					break;
+				case '/':
+					carts[i].direction = 'up';
+					break;
+				case '+':
+					switch(carts[i].nextTurn) {
+						case 'left':
+							carts[i].direction = 'up';
+							carts[i].nextTurn = 'straight';
+							break;
+						case 'straight':
+							carts[i].nextTurn = 'right';
+							break;
+						case 'right':
+							carts[i].direction = 'down';
+							carts[i].nextTurn = 'left';
+							break;
+					}
+					break;
+			}
+			break;
+	}
+	return carts;
+}
+
+// Removes the values at @index or at each of the indexes in array @indices of @array and returns resulting array
+const removeIndex = (array, indices) => {
+	if (typeof indices === 'number') {
+		return array.slice(0, indices).concat(array.slice(indices+1));
+	}
+	indices.sort((a,b) => a - b);
+	while (indices.length) {
+		const remove = indices.shift();
+		array = removeIndex(array, remove);
+		indices = indices.map(el => el - 1);
+	}
+	return array;
+}
