@@ -7,10 +7,15 @@ class LinkedListNode {
 	}
 }
 
+// For Day 14 - Recipes
 class LinkedList {
-	constructor() {
+	constructor(seq = 0) {
 		this.head = null;
+		this.firstElf = null;
+		this.secondElf = null;
 		this.size = 0;
+		this.seqLength = seq;
+		this.seq = '';
 	}
 
 	// Adds an element at the end of the list
@@ -20,6 +25,7 @@ class LinkedList {
 		// If the list is empty
 		if (this.head == null) {
 			this.head = node;
+			this.firstElf = node;
 		} 
 		else {
 			current = this.head;
@@ -29,8 +35,59 @@ class LinkedList {
 			}
 			// Add the node at the end of the list
 			current.next = node;
+			if (this.size === 1) {
+				this.secondElf = node;
+			}
+		}
+		if (this.size < this.seqLength) {
+			this.seq += el;
+		} 
+		else {
+			this.seq = this.seq.slice(1) + el;
 		}
 		this.size++;
+	}
+
+	moveElves() {
+		const firstMoves = this.firstElf.element + 1;
+		const secondMoves = this.secondElf.element + 1;
+		for (var f = 0; f < firstMoves; f++) {
+			this.firstElf = this.firstElf.next ?
+				this.firstElf.next : this.head;
+		}
+		for (var s = 0; s < secondMoves; s++) {
+			this.secondElf = this.secondElf.next ?
+				this.secondElf.next : this.head;
+		}
+	}
+
+	getElfValue(elf) {
+		if (elf === 1) {
+			return this.firstElf.element;
+		} else {
+			return this.secondElf.element;
+		}
+	}
+
+	getElfSum() {
+		return this.firstElf.element + this.secondElf.element;
+	}
+
+	getNextTenAfterIndex(index) {
+		let current = this.head;
+		for (let i = 0; i < index; i++) {
+			current = current.next;
+		}
+		let str = '';
+		for (let i = 0; i < 10; i++) {
+			str += current.element;
+			current = current.next;
+		}
+		return str;
+	}
+
+	getSequence() {
+		return this.seq;
 	}
 
 	// Inserts an element at the given index
@@ -124,7 +181,15 @@ class LinkedList {
         let cur = this.head;
         let str = '';
         while (cur) {
-            str += cur.element + ' ';
+			if (this.firstElf === cur) {
+				str += `(${cur.element}) `
+			} 
+			else if (this.secondElf === cur) {
+				str += `[${cur.element}] `
+			}
+			else {
+				str += cur.element + ' ';
+			}
             cur = cur.next;
         }
         return str;

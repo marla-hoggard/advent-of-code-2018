@@ -358,10 +358,6 @@ const largestFiniteArea = input => {
 	return Math.max(...areas);
 }
 
-const manhattanDistance = ([x1, y1], [x2, y2]) => {
-	return Math.abs(x2-x1) + Math.abs(y2-y1);
-}
-
 const closestSpot = (row, col, allCoords) => {
 	const dist = allCoords.map(coord => manhattanDistance(coord, [row, col]));
 	const min = Math.min(...dist);
@@ -443,15 +439,6 @@ const stepOrder = input => {
 		count--;
 	}
 	return order;
-}
-
-// Returns @array without first instance of @val
-const removeVal = (array, val) => {
-	const index = array.indexOf(val);
-	if (index >= 0) {
-		return array.slice(0, index).concat(array.slice(index + 1));
-	} 
-	return array;
 }
 
 // Day 7 - Puzzle 2
@@ -1098,16 +1085,355 @@ const move = (carts, i, tracks) => {
 	return carts;
 }
 
-// Removes the values at @index or at each of the indexes in array @indices of @array and returns resulting array
-const removeIndex = (array, indices) => {
-	if (typeof indices === 'number') {
-		return array.slice(0, indices).concat(array.slice(indices+1));
+// Day 14 - Puzzle 1
+const bestRecipe = numTurns => {
+	let scoreboard = new LinkedList();
+	scoreboard.add(3);
+	scoreboard.add(7);
+	while (scoreboard.sizeOfList() <= numTurns + 10) {
+		if (scoreboard.sizeOfList() % 10000 === 0) {
+			console.log(scoreboard.sizeOfList());
+		}
+		const newRecipe = scoreboard.getElfSum();
+		if (newRecipe < 10) {
+			scoreboard.add(newRecipe);
+		} else {
+			scoreboard.add(1);
+			scoreboard.add(newRecipe - 10);
+		}
+		scoreboard.moveElves();
 	}
-	indices.sort((a,b) => a - b);
-	while (indices.length) {
-		const remove = indices.shift();
-		array = removeIndex(array, remove);
-		indices = indices.map(el => el - 1);
-	}
-	return array;
+	// console.log(scoreboard.printList());
+	return scoreboard.getNextTenAfterIndex(numTurns);
 }
+
+// Day 14 - Puzzle 2
+// Attempt 1 with LinkedList -> Way too slow
+const recipeSequence = seq => {
+	let scoreboard = new LinkedList(seq.length);
+	scoreboard.add(3);
+	scoreboard.add(7);
+	while (scoreboard.getSequence() !== seq) {
+		if (scoreboard.sizeOfList() % 50000 === 0) {
+			console.log(scoreboard.sizeOfList());
+		}
+		const newRecipe = scoreboard.getElfSum();
+		if (newRecipe < 10) {
+			scoreboard.add(newRecipe);
+		} else {
+			scoreboard.add(1);
+			if (scoreboard.getSequence() === seq) {
+				break;
+			}
+			scoreboard.add(newRecipe - 10);
+		}
+		scoreboard.moveElves();
+	}
+	// console.log(scoreboard.printList());
+	return scoreboard.sizeOfList() - seq.length;
+}
+
+// Using strings instead of linked list
+// Faster but still way too slow
+const recipeSequence2 = seq => {
+	let scoreboard = '37'
+	let elf1 = 0, elf2 = 1;
+	const len = seq.length;
+	while (scoreboard.slice(0-len) !== seq && scoreboard.slice(-1-len, -1) !== seq) {
+		const elf1score = +scoreboard[elf1];
+		const elf2score = +scoreboard[elf2];
+		scoreboard += (elf1score + elf2score);
+		elf1 = (elf1 + elf1score + 1) % scoreboard.length;
+		elf2 = (elf2 + elf2score + 1) % scoreboard.length;
+		if (scoreboard.length % 100000 === 0) {
+			console.log(scoreboard.length);
+		}
+	}
+	return scoreboard.indexOf(seq);
+}
+
+// Final attempt, runs in a little over a minute
+// Store as an array of strings with length 100,000 for fastest processing
+const recipeSequence3 = seq => {
+	let scoreboard = ['37'];
+	let elf1 = 0, elf2 = 1;
+	const len = seq.length;
+	let last = 0;
+	while (scoreboard[last].slice(0-len) !== seq && 
+				scoreboard[last].slice(-1-len,-1) !== seq) {
+		const elf1score = +scoreboard[Math.floor(elf1/100000)][elf1 % 100000];
+		const elf2score = +scoreboard[Math.floor(elf2/100000)][elf2 % 100000];
+		scoreboard[last] += (elf1score + elf2score);
+		if (scoreboard[last].length >= 100000 + len) {
+			scoreboard.push(scoreboard[last].slice(100000));
+			scoreboard[last] = scoreboard[last].slice(0,100000);
+			last++;
+		}
+		elf1 = (elf1 + elf1score + 1) % ((scoreboard.length - 1) * 100000 + scoreboard[last].length);
+		elf2 = (elf2 + elf2score + 1) % ((scoreboard.length - 1) * 100000 + scoreboard[last].length);
+	}
+	return (scoreboard.length - 1) * 100000 + scoreboard[last].indexOf(seq);
+}
+
+// ---------- GOBLINS -----------------------
+
+// Day 16 - Puzzle 1
+const sampleOpcodes = input => {
+	const samples = input.split(/\n\n/)
+											 .map(s => s.split(/\n/)
+																	 .map(el => el.split(/\[|,?\s|\]/)
+																								 .filter(el => !isNaN(el) && el.length)
+																								 .map(el => +el)));
+	let found = 0;
+	samples.forEach(([before, instr, after]) => {
+		if (possOpcodes(before, instr, after).length >=3 ) {
+			found++;
+		}
+	});
+	return found;
+}
+
+// Returns an array of the possible op codes the sample could produce
+const possOpcodes = (before, instr, after) => {
+	let opcodes = [];
+	let result = after.join(',');
+	const [op, A, B, C] = instr;
+	let worker;
+
+	//addr
+	if (A < 4 && B < 4) {
+		worker = [...before];
+		worker[C] = worker[A] + worker[B];
+		if (worker.join(',') === result) {
+			opcodes.push('addr');
+		}
+	}
+
+	//addi
+	if (A < 4) {
+		worker = [...before];
+		worker[C] = worker[A] + B;
+		if (worker.join(',') === result) {
+			opcodes.push('addi');
+		}
+	}
+
+	//mulr
+	if (A < 4 && B < 4) {
+		worker = [...before];
+		worker[C] = worker[A] * worker[B];
+		if (worker.join(',') === result) {
+			opcodes.push('mulr');
+		}
+	}
+
+	//muli
+	if (A < 4) {
+		worker = [...before];
+		worker[C] = worker[A] * B;
+		if (worker.join(',') === result) {
+			opcodes.push('muli');
+		}
+	}
+
+	//banr
+	if (A < 4 && B < 4) {
+		worker = [...before];
+		worker[C] = worker[A] & worker[B];
+		if (worker.join(',') === result) {
+			opcodes.push('banr');
+		}
+	}
+
+	//bani
+	if (A < 4) {
+		worker = [...before];
+		worker[C] = worker[A] & B;
+		if (worker.join(',') === result) {
+			opcodes.push('bani');
+		}
+	}
+
+	//borr
+	if (A < 4 && B < 4) {
+		worker = [...before];
+		worker[C] = worker[A] | worker[B];
+		if (worker.join(',') === result) {
+			opcodes.push('borr');
+		}
+	}
+
+	//bori
+	if (A < 4) {
+		worker = [...before];
+		worker[C] = worker[A] | B;
+		if (worker.join(',') === result) {
+			opcodes.push('bori');
+		}
+	}
+
+	//setr
+	if (A < 4) {
+		worker = [...before];
+		worker[C] = worker[A];
+		if (worker.join(',') === result) {
+			opcodes.push('setr');
+		}
+	}
+
+	//seti
+	if (A < 4) {
+		worker = [...before];
+		worker[C] = A;
+		if (worker.join(',') === result) {
+			opcodes.push('seti');
+		}
+	}
+
+	//gtir
+	if (B < 4) {
+		worker = [...before];
+		worker[C] = A > worker[B] ? 1 : 0;
+		if (worker.join(',') === result) {
+			opcodes.push('gtir');
+		}
+	}
+
+	//gtri
+	if (A < 4) {
+		worker = [...before];
+		worker[C] = worker[A] > B ? 1 : 0;
+		if (worker.join(',') === result) {
+			opcodes.push('gtri');
+		}
+	}
+
+	//gtrr
+	if (A < 4 && B < 4) {
+		worker = [...before];
+		worker[C] = worker[A] > worker[B] ? 1 : 0;
+		if (worker.join(',') === result) {
+			opcodes.push('gtrr');
+		}
+	}
+
+	//eqir
+	if (B < 4) {
+		worker = [...before];
+		worker[C] = A === worker[B] ? 1 : 0;
+		if (worker.join(',') === result) {
+			opcodes.push('eqir');
+		}
+	}
+
+	//eqri
+	if (A < 4) {
+		worker = [...before];
+		worker[C] = worker[A] === B ? 1 : 0;
+		if (worker.join(',') === result) {
+			opcodes.push('eqri');
+		}
+	}
+
+	//eqrr
+	if (A < 4 && B < 4) {
+		worker = [...before];
+		worker[C] = worker[A] === worker[B] ? 1 : 0;
+		if (worker.join(',') === result) {
+			opcodes.push('eqrr');
+		}
+	}
+	return opcodes;
+}
+
+// Day 16 - Puzzle 2
+const performOps = (sampleList, operations) => {
+	const samples = sampleList.split(/\n\n/)
+											 .map(s => s.split(/\n/)
+																	 .map(el => el.split(/\[|,?\s|\]/)
+																								 .filter(el => !isNaN(el) && el.length)
+																								 .map(el => +el)));
+	const opMap = decodeOpcodes(samples);
+	const ops = operations.split(/\n/).map(str => str.split(' ').map(el => +el));
+	let registers = [0, 0, 0, 0];
+	ops.forEach(([code, A, B, C], i) => {
+		switch(opMap[code]) {
+			case 'addr':
+				registers[C] = registers[A] + registers[B];
+				break;
+			case 'addi':
+				registers[C] = registers[A] + B;
+				break;
+			case 'mulr':
+				registers[C] = registers[A] * registers[B];
+				break;
+			case 'muli':
+				registers[C] = registers[A] * B;
+				break;
+			case 'banr':
+				registers[C] = registers[A] & registers[B];
+				break;
+			case 'bani':
+				registers[C] = registers[A] & B;
+				break;
+			case 'borr':
+				registers[C] = registers[A] | registers[B];
+				break;
+			case 'bori':
+				registers[C] = registers[A] | B;
+				break;
+			case 'setr':
+				registers[C] = registers[A];
+				break;
+			case 'seti':
+				registers[C] = A;
+				break;
+			case 'gtir':
+				registers[C] = A > registers[B] ? 1 : 0;
+				break;
+			case 'gtri':
+				registers[C] = registers[A] > B ? 1 : 0;
+				break;
+			case 'gtrr':
+				registers[C] = registers[A] > registers[B] ? 1 : 0;
+				break;
+			case 'eqir':
+				registers[C] = A === registers[B] ? 1 : 0;
+				break;
+			case 'eqri':
+				registers[C] = registers[A] === B ? 1 : 0;
+				break;
+			case 'eqrr':
+				registers[C] = registers[A] === registers[B] ? 1 : 0;
+				break;
+			default:
+				console.log('uh oh');
+		}
+	});
+	return registers;
+}
+
+// Returns an array that maps code id (index of array) to opcode
+const decodeOpcodes = samples => {
+	let opcodes = ['addr', 'addi', 'mulr', 'muli', 'banr', 'bani', 'borr', 'bori', 
+		'setr', 'seti', 'gtir', 'gtri', 'gtrr', 'eqir', 'eqri', 'eqrr'];
+	let opcodeMap = Array(16).fill(null);
+
+	let sampleLogic = samples.map(([before, instr, after]) => [instr[0], possOpcodes(before, instr, after)]);
+	let singles = ['array'];
+	while (opcodeMap.includes(null) && singles.length) {
+		singles = sampleLogic.filter(([id, codes]) => codes.length === 1);
+		singles.forEach(([id, code]) => {
+			if (!opcodeMap[id]) {
+				opcodeMap[id] = code[0];
+				opcodes = removeVal(opcodes, code[0]);
+			}
+		});
+		sampleLogic = sampleLogic.map(([code, posscodes]) => [code, posscodes.filter(el => !opcodeMap.includes(el))]);
+	}
+	console.log(opcodeMap);
+	return opcodeMap;
+}
+
+
+
