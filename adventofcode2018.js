@@ -1178,12 +1178,9 @@ const recipeSequence3 = seq => {
 // ---------- GOBLINS -----------------------
 
 // Day 16 - Puzzle 1
+// Returns the number of samples that could be three or more opcodes
 const sampleOpcodes = input => {
-	const samples = input.split(/\n\n/)
-											 .map(s => s.split(/\n/)
-																	 .map(el => el.split(/\[|,?\s|\]/)
-																								 .filter(el => !isNaN(el) && el.length)
-																								 .map(el => +el)));
+	const samples = cleanupSamples(input);
 	let found = 0;
 	samples.forEach(([before, instr, after]) => {
 		if (possOpcodes(before, instr, after).length >=3 ) {
@@ -1191,6 +1188,25 @@ const sampleOpcodes = input => {
 		}
 	});
 	return found;
+}
+
+/* Parses input into an array of arrays of the form [before, instructions, after]
+ * where each item is an array of 4 integers
+ * i.e. 
+ * `Before: [2, 0, 2, 2]
+ * 3 0 2 1
+ * After:  [2, 1, 2, 2]`
+ * to
+ * [[2, 0, 2, 2],
+ *  [3, 0, 2, 1],
+ *  [2, 1, 2, 2]]
+ */
+const cleanupSamples = input => {
+	return input.split(/\n\n/)
+							.map(s => s.split(/\n/)
+													.map(el => el.split(/\[|,?\s|\]/)
+																				.filter(el => !isNaN(el) && el.length)
+																				.map(el => +el)));
 }
 
 // Returns an array of the possible op codes the sample could produce
@@ -1347,12 +1363,9 @@ const possOpcodes = (before, instr, after) => {
 }
 
 // Day 16 - Puzzle 2
+// Performs @operations after using @sampleList to decode the opcode ids
 const performOps = (sampleList, operations) => {
-	const samples = sampleList.split(/\n\n/)
-											 .map(s => s.split(/\n/)
-																	 .map(el => el.split(/\[|,?\s|\]/)
-																								 .filter(el => !isNaN(el) && el.length)
-																								 .map(el => +el)));
+	const samples = cleanupSamples(sampleList);
 	const opMap = decodeOpcodes(samples);
 	const ops = operations.split(/\n/).map(str => str.split(' ').map(el => +el));
 	let registers = [0, 0, 0, 0];
@@ -1413,14 +1426,15 @@ const performOps = (sampleList, operations) => {
 	return registers;
 }
 
-// Returns an array that maps code id (index of array) to opcode
+// Returns an array that maps opcode id (index of array) to opcode
 const decodeOpcodes = samples => {
 	let opcodes = ['addr', 'addi', 'mulr', 'muli', 'banr', 'bani', 'borr', 'bori', 
 		'setr', 'seti', 'gtir', 'gtri', 'gtrr', 'eqir', 'eqri', 'eqrr'];
 	let opcodeMap = Array(16).fill(null);
 
+	// Maps each sample to [opcode id, [possible opcodes]]
 	let sampleLogic = samples.map(([before, instr, after]) => [instr[0], possOpcodes(before, instr, after)]);
-	let singles = ['array'];
+	let singles = ['array']; // In case this method didn't work, guards against infinite loop when no singles found
 	while (opcodeMap.includes(null) && singles.length) {
 		singles = sampleLogic.filter(([id, codes]) => codes.length === 1);
 		singles.forEach(([id, code]) => {
@@ -1435,5 +1449,91 @@ const decodeOpcodes = samples => {
 	return opcodeMap;
 }
 
+// --------- DAY 17 - WATER/SAND --------------------------------
 
+// Day 18 - Puzzle 1
+const lumberValue = (input, minutes) => {
+	let yard = input.split(/\n/);
+	for (var m = 0; m < minutes; m++) {
+		yard = yardStep(yard);
+	}
+	return countInstances2D(yard, '|') * countInstances2D(yard, '#');
+}
+
+// Day 18 - Puzzle 2
+const lumberValue2 = (input, minutes) => {
+	let yard = input.split(/\n/);
+	let config = [];
+	let m = 0;
+	// Find the first repeat
+	while (!config.includes(yard.join('')) && m < minutes) {
+		config.push(yard.join(''));
+		yard = yardStep(yard);
+		m++;
+	}
+	// Never found a pattern
+	if (m === minutes) {
+		return countInstances2D(yard, '|') * countInstances2D(yard, '#');
+	}
+	// Find the second repeat
+	const firstRepeat = m;
+	config = yard.join('');
+	m = 0;
+	do {
+		yard = yardStep(yard);
+		m++;
+	}
+	while (yard.join('') !== config && m + firstRepeat < minutes);
+	if (m + firstRepeat === minutes) {
+		return countInstances2D(yard, '|') * countInstances2D(yard, '#');
+	}
+	console.log(firstRepeat, m);
+	const sameAs = ((minutes - firstRepeat) % m) + firstRepeat;
+	return lumberValue(input, sameAs);
+}
+
+
+// Turn over yarn one minute and return new yard
+const yardStep = yard => {
+	return yard.map((row, rowi, yard) => {
+		return row.split('').map((el, coli) => {
+			const neighbors = lumberNeighbors(yard, rowi, coli);
+			switch(el) {
+				case '.':
+					return neighbors.trees >= 3 ? '|' : '.';
+				case '|':
+					return neighbors.lumberyard >= 3 ? '#' : '|';
+				case '#':
+					return neighbors.trees >= 1 && neighbors.lumberyard >= 1 ? '#' : '.';
+			}
+		}).join('');
+	});
+}
+
+// Returns an object with keys open, trees, lumberyard
+// representing the totals of each type that are adjacent to yard[rowi][coli]
+const lumberNeighbors = (yard, rowi, coli) => {
+	let neighbors = {
+		'.': 0,
+		'|': 0,
+		'#': 0,
+	};
+	if (rowi > 0) {
+		neighbors[yard[rowi-1][coli-1]]++;
+		neighbors[yard[rowi-1][coli]]++;
+		neighbors[yard[rowi-1][coli+1]]++;
+	}
+	neighbors[yard[rowi][coli-1]]++;
+	neighbors[yard[rowi][coli+1]]++;
+	if (rowi + 1 < yard.length) {
+		neighbors[yard[rowi+1][coli-1]]++;
+		neighbors[yard[rowi+1][coli]]++;
+		neighbors[yard[rowi+1][coli+1]]++;
+	}
+	return {
+		open: neighbors['.'],
+		trees: neighbors['|'],
+		lumberyard: neighbors['#'],
+	};
+}
 
